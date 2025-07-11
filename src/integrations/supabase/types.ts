@@ -97,6 +97,62 @@ export type Database = {
           },
         ]
       }
+      maintenance_records: {
+        Row: {
+          cost: number | null
+          created_at: string | null
+          cylinder_id: string
+          date_performed: string
+          description: string
+          id: string
+          maintenance_type: string
+          next_maintenance_date: string | null
+          notes: string | null
+          parts_replaced: string | null
+          status: string
+          technician: string
+          updated_at: string | null
+        }
+        Insert: {
+          cost?: number | null
+          created_at?: string | null
+          cylinder_id: string
+          date_performed?: string
+          description: string
+          id?: string
+          maintenance_type: string
+          next_maintenance_date?: string | null
+          notes?: string | null
+          parts_replaced?: string | null
+          status?: string
+          technician: string
+          updated_at?: string | null
+        }
+        Update: {
+          cost?: number | null
+          created_at?: string | null
+          cylinder_id?: string
+          date_performed?: string
+          description?: string
+          id?: string
+          maintenance_type?: string
+          next_maintenance_date?: string | null
+          notes?: string | null
+          parts_replaced?: string | null
+          status?: string
+          technician?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_records_cylinder_id_fkey"
+            columns: ["cylinder_id"]
+            isOneToOne: false
+            referencedRelation: "cylinders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tank_inventory: {
         Row: {
           capacity_kg: number

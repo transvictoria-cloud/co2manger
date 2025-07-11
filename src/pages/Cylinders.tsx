@@ -103,6 +103,8 @@ const Cylinders = () => {
       manufacture_date: newCylinder.manufacture_date || null,
       last_hydrostatic_test: newCylinder.last_hydrostatic_test || null,
       next_hydrostatic_test: newCylinder.next_hydrostatic_test || null,
+      state: 'empty',
+      location: 'dispatch',
     });
     setNewCylinder({
       serial_number: '',
