@@ -8,78 +8,92 @@ import {
   AlertTriangle, 
   Droplets, 
   Package, 
-  Users, 
   TrendingUp,
   Clock,
   CheckCircle,
   XCircle,
   MapPin
 } from 'lucide-react';
+import { useTankInventory } from '@/hooks/useTank';
+import { useCylinders } from '@/hooks/useCylinders';
+import { useFillings } from '@/hooks/useFillings';
+import { useTransfers } from '@/hooks/useTransfers';
 
 const Dashboard = () => {
-  // Sample data - in a real app this would come from your database
-  const tankLevel = 2450; // kg
-  const tankCapacity = 3200; // kg
+  const { data: tankData, isLoading: tankLoading } = useTankInventory();
+  const { data: cylinders, isLoading: cylindersLoading } = useCylinders();
+  const { data: fillings, isLoading: fillingsLoading } = useFillings();
+  const { data: transfers, isLoading: transfersLoading } = useTransfers();
+
+  if (tankLoading || cylindersLoading || fillingsLoading || transfersLoading) {
+    return <div className="p-6">Cargando...</div>;
+  }
+
+  const tankLevel = tankData?.current_level_kg || 0;
+  const tankCapacity = tankData?.capacity_kg || 3200;
   const tankPercentage = (tankLevel / tankCapacity) * 100;
 
-  const stats = {
-    totalCylinders: 150,
-    fullCylinders: 45,
-    emptyCylinders: 32,
-    inMaintenance: 8,
-    todayFillings: 12,
-    todayTransfers: 18
+  const cylinderStats = {
+    total: cylinders?.length || 0,
+    full: cylinders?.filter(c => c.state === 'full').length || 0,
+    empty: cylinders?.filter(c => c.state === 'empty').length || 0,
+    maintenance: cylinders?.filter(c => c.state === 'maintenance').length || 0,
   };
 
-  const recentActivities = [
-    {
-      id: 1,
-      type: 'filling',
-      description: 'Cilindro CYL-001 llenado',
-      operator: 'María González',
-      time: '14:30',
-      status: 'completed'
-    },
-    {
-      id: 2,
-      type: 'transfer',
-      description: 'CYL-002 trasladado a Despacho',
-      operator: 'Juan Pérez',
-      time: '14:15',
-      status: 'completed'
-    },
-    {
-      id: 3,
-      type: 'alert',
-      description: 'Nivel de tanque bajo 75%',
-      operator: 'Sistema',
-      time: '13:45',
-      status: 'warning'
-    },
-    {
-      id: 4,
-      type: 'filling',
-      description: 'Cilindro CYL-003 llenado',
-      operator: 'Carlos Rodríguez',
-      time: '13:20',
-      status: 'completed'
-    }
-  ];
+  const today = new Date().toDateString();
+  const todayFillings = fillings?.filter(f => 
+    new Date(f.date_time || '').toDateString() === today && f.status === 'approved'
+  ).length || 0;
+  
+  const todayTransfers = transfers?.filter(t => 
+    new Date(t.date_time || '').toDateString() === today
+  ).length || 0;
 
-  const alerts = [
-    {
+  const recentActivities = [
+    ...(fillings?.slice(0, 2).map(f => ({
+      id: f.id,
+      type: 'filling',
+      description: `Cilindro llenado - ${f.amount_kg}kg`,
+      operator: f.operator,
+      time: new Date(f.date_time || '').toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+      status: f.status === 'approved' ? 'completed' : 'warning'
+    })) || []),
+    ...(transfers?.slice(0, 2).map(t => ({
+      id: t.id,
+      type: 'transfer',
+      description: `Traslado: ${t.from_location} → ${t.to_location}`,
+      operator: t.operator,
+      time: new Date(t.date_time || '').toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+      status: 'completed'
+    })) || [])
+  ].slice(0, 4);
+
+  const alerts = [];
+  if (tankPercentage < 25) {
+    alerts.push({
       id: 1,
       type: 'warning',
-      message: 'Tanque principal al 76% de capacidad',
-      priority: 'medium'
-    },
-    {
+      message: `Tanque principal al ${tankPercentage.toFixed(1)}% de capacidad`,
+      priority: 'high'
+    });
+  }
+
+  const cylindersNeedingMaintenance = cylinders?.filter(c => {
+    if (!c.next_hydrostatic_test) return false;
+    const testDate = new Date(c.next_hydrostatic_test);
+    const today = new Date();
+    const monthsUntilTest = (testDate.getTime() - today.getTime()) / (1000 * 3600 * 24 * 30);
+    return monthsUntilTest <= 3;
+  }).length || 0;
+
+  if (cylindersNeedingMaintenance > 0) {
+    alerts.push({
       id: 2,
       type: 'maintenance',
-      message: '3 cilindros requieren prueba hidrostática este mes',
-      priority: 'high'
-    }
-  ];
+      message: `${cylindersNeedingMaintenance} cilindros requieren prueba hidrostática pronto`,
+      priority: 'medium'
+    });
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -143,7 +157,7 @@ const Dashboard = () => {
               
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-600">
-                  {Math.floor((tankLevel / 10) * 0.8)} {/* Estimate cylinders possible */}
+                  {Math.floor((tankLevel / 10) * 0.8)}
                 </div>
                 <div className="text-sm text-gray-600">Cilindros estimados (10kg)</div>
               </div>
@@ -156,7 +170,7 @@ const Dashboard = () => {
           <Card>
             <CardContent className="p-4 text-center">
               <Package className="h-8 w-8 mx-auto mb-2 text-blue-600" />
-              <div className="text-2xl font-bold text-gray-900">{stats.totalCylinders}</div>
+              <div className="text-2xl font-bold text-gray-900">{cylinderStats.total}</div>
               <div className="text-xs text-gray-600">Total Cilindros</div>
             </CardContent>
           </Card>
@@ -164,7 +178,7 @@ const Dashboard = () => {
           <Card>
             <CardContent className="p-4 text-center">
               <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-600" />
-              <div className="text-2xl font-bold text-green-600">{stats.fullCylinders}</div>
+              <div className="text-2xl font-bold text-green-600">{cylinderStats.full}</div>
               <div className="text-xs text-gray-600">Llenos</div>
             </CardContent>
           </Card>
@@ -172,7 +186,7 @@ const Dashboard = () => {
           <Card>
             <CardContent className="p-4 text-center">
               <XCircle className="h-8 w-8 mx-auto mb-2 text-red-600" />
-              <div className="text-2xl font-bold text-red-600">{stats.emptyCylinders}</div>
+              <div className="text-2xl font-bold text-red-600">{cylinderStats.empty}</div>
               <div className="text-xs text-gray-600">Vacíos</div>
             </CardContent>
           </Card>
@@ -180,7 +194,7 @@ const Dashboard = () => {
           <Card>
             <CardContent className="p-4 text-center">
               <Clock className="h-8 w-8 mx-auto mb-2 text-orange-600" />
-              <div className="text-2xl font-bold text-orange-600">{stats.inMaintenance}</div>
+              <div className="text-2xl font-bold text-orange-600">{cylinderStats.maintenance}</div>
               <div className="text-xs text-gray-600">Mantenimiento</div>
             </CardContent>
           </Card>
@@ -188,7 +202,7 @@ const Dashboard = () => {
           <Card>
             <CardContent className="p-4 text-center">
               <TrendingUp className="h-8 w-8 mx-auto mb-2 text-purple-600" />
-              <div className="text-2xl font-bold text-purple-600">{stats.todayFillings}</div>
+              <div className="text-2xl font-bold text-purple-600">{todayFillings}</div>
               <div className="text-xs text-gray-600">Llenados Hoy</div>
             </CardContent>
           </Card>
@@ -196,7 +210,7 @@ const Dashboard = () => {
           <Card>
             <CardContent className="p-4 text-center">
               <MapPin className="h-8 w-8 mx-auto mb-2 text-indigo-600" />
-              <div className="text-2xl font-bold text-indigo-600">{stats.todayTransfers}</div>
+              <div className="text-2xl font-bold text-indigo-600">{todayTransfers}</div>
               <div className="text-xs text-gray-600">Traslados Hoy</div>
             </CardContent>
           </Card>
@@ -210,7 +224,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {recentActivities.map((activity) => (
+                {recentActivities.length > 0 ? recentActivities.map((activity) => (
                   <div key={activity.id} className="flex items-center space-x-3 p-3 rounded-lg border">
                     <div className={`w-2 h-2 rounded-full ${
                       activity.status === 'completed' ? 'bg-green-500' : 
@@ -225,7 +239,9 @@ const Dashboard = () => {
                       </div>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <p className="text-gray-500 text-sm">No hay actividad reciente</p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -240,7 +256,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {alerts.map((alert) => (
+                {alerts.length > 0 ? alerts.map((alert) => (
                   <div key={alert.id} className={`p-3 rounded-lg border-l-4 ${
                     alert.priority === 'high' ? 'border-red-500 bg-red-50' :
                     alert.priority === 'medium' ? 'border-yellow-500 bg-yellow-50' :
@@ -259,7 +275,9 @@ const Dashboard = () => {
                       </Badge>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <p className="text-gray-500 text-sm">No hay alertas activas</p>
+                )}
               </div>
             </CardContent>
           </Card>

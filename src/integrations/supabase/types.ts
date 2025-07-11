@@ -14,7 +14,190 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      cylinders: {
+        Row: {
+          capacity_kg: number
+          created_at: string | null
+          id: string
+          last_hydrostatic_test: string | null
+          location: Database["public"]["Enums"]["cylinder_location"]
+          manufacture_date: string | null
+          next_hydrostatic_test: string | null
+          serial_number: string
+          state: Database["public"]["Enums"]["cylinder_state"]
+          updated_at: string | null
+          valve_type: Database["public"]["Enums"]["valve_type"]
+        }
+        Insert: {
+          capacity_kg: number
+          created_at?: string | null
+          id?: string
+          last_hydrostatic_test?: string | null
+          location?: Database["public"]["Enums"]["cylinder_location"]
+          manufacture_date?: string | null
+          next_hydrostatic_test?: string | null
+          serial_number: string
+          state?: Database["public"]["Enums"]["cylinder_state"]
+          updated_at?: string | null
+          valve_type?: Database["public"]["Enums"]["valve_type"]
+        }
+        Update: {
+          capacity_kg?: number
+          created_at?: string | null
+          id?: string
+          last_hydrostatic_test?: string | null
+          location?: Database["public"]["Enums"]["cylinder_location"]
+          manufacture_date?: string | null
+          next_hydrostatic_test?: string | null
+          serial_number?: string
+          state?: Database["public"]["Enums"]["cylinder_state"]
+          updated_at?: string | null
+          valve_type?: Database["public"]["Enums"]["valve_type"]
+        }
+        Relationships: []
+      }
+      fillings: {
+        Row: {
+          amount_kg: number
+          created_at: string | null
+          cylinder_id: string
+          date_time: string | null
+          id: string
+          operator: string
+          rejection_reason: string | null
+          status: string
+        }
+        Insert: {
+          amount_kg: number
+          created_at?: string | null
+          cylinder_id: string
+          date_time?: string | null
+          id?: string
+          operator: string
+          rejection_reason?: string | null
+          status: string
+        }
+        Update: {
+          amount_kg?: number
+          created_at?: string | null
+          cylinder_id?: string
+          date_time?: string | null
+          id?: string
+          operator?: string
+          rejection_reason?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fillings_cylinder_id_fkey"
+            columns: ["cylinder_id"]
+            isOneToOne: false
+            referencedRelation: "cylinders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tank_inventory: {
+        Row: {
+          capacity_kg: number
+          current_level_kg: number
+          id: string
+          last_updated: string | null
+          notes: string | null
+          operator: string | null
+        }
+        Insert: {
+          capacity_kg?: number
+          current_level_kg?: number
+          id?: string
+          last_updated?: string | null
+          notes?: string | null
+          operator?: string | null
+        }
+        Update: {
+          capacity_kg?: number
+          current_level_kg?: number
+          id?: string
+          last_updated?: string | null
+          notes?: string | null
+          operator?: string | null
+        }
+        Relationships: []
+      }
+      tank_movements: {
+        Row: {
+          amount_kg: number
+          created_at: string | null
+          date_time: string | null
+          id: string
+          movement_type: string
+          notes: string | null
+          operator: string
+          supplier: string | null
+        }
+        Insert: {
+          amount_kg: number
+          created_at?: string | null
+          date_time?: string | null
+          id?: string
+          movement_type: string
+          notes?: string | null
+          operator: string
+          supplier?: string | null
+        }
+        Update: {
+          amount_kg?: number
+          created_at?: string | null
+          date_time?: string | null
+          id?: string
+          movement_type?: string
+          notes?: string | null
+          operator?: string
+          supplier?: string | null
+        }
+        Relationships: []
+      }
+      transfers: {
+        Row: {
+          created_at: string | null
+          cylinder_id: string
+          date_time: string | null
+          from_location: Database["public"]["Enums"]["cylinder_location"]
+          id: string
+          notes: string | null
+          operator: string
+          to_location: Database["public"]["Enums"]["cylinder_location"]
+        }
+        Insert: {
+          created_at?: string | null
+          cylinder_id: string
+          date_time?: string | null
+          from_location: Database["public"]["Enums"]["cylinder_location"]
+          id?: string
+          notes?: string | null
+          operator: string
+          to_location: Database["public"]["Enums"]["cylinder_location"]
+        }
+        Update: {
+          created_at?: string | null
+          cylinder_id?: string
+          date_time?: string | null
+          from_location?: Database["public"]["Enums"]["cylinder_location"]
+          id?: string
+          notes?: string | null
+          operator?: string
+          to_location?: Database["public"]["Enums"]["cylinder_location"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transfers_cylinder_id_fkey"
+            columns: ["cylinder_id"]
+            isOneToOne: false
+            referencedRelation: "cylinders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +206,19 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      cylinder_location:
+        | "dispatch"
+        | "filling_station"
+        | "maintenance"
+        | "out_of_service"
+      cylinder_state:
+        | "empty"
+        | "full"
+        | "filling"
+        | "maintenance"
+        | "out_of_service"
+      transfer_direction: "filling_to_dispatch" | "dispatch_to_filling"
+      valve_type: "standard" | "safety" | "pressure_relief"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +345,22 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      cylinder_location: [
+        "dispatch",
+        "filling_station",
+        "maintenance",
+        "out_of_service",
+      ],
+      cylinder_state: [
+        "empty",
+        "full",
+        "filling",
+        "maintenance",
+        "out_of_service",
+      ],
+      transfer_direction: ["filling_to_dispatch", "dispatch_to_filling"],
+      valve_type: ["standard", "safety", "pressure_relief"],
+    },
   },
 } as const

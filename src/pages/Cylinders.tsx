@@ -1,130 +1,125 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { 
+  Package, 
   Search, 
   Filter, 
-  Plus, 
-  Package, 
-  Calendar,
-  MapPin,
+  Plus,
   Edit,
-  Eye,
-  QrCode
+  CheckCircle,
+  XCircle,
+  Clock,
+  AlertTriangle
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
-
-interface Cylinder {
-  id: string;
-  serialNumber: string;
-  capacity: number;
-  valveType: string;
-  manufacturingDate: string;
-  lastHydroTest: string;
-  nextHydroTest: string;
-  status: 'empty' | 'full' | 'filling' | 'maintenance' | 'out_of_service';
-  location: 'dispatch' | 'filling_station' | 'maintenance' | 'out_of_service';
-  lastFilling?: string;
-  fillCount: number;
-}
+import { 
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { useCylinders, useUpdateCylinder, useCreateCylinder } from '@/hooks/useCylinders';
+import { toast } from 'sonner';
 
 const Cylinders = () => {
-  const [cylinders, setCylinders] = useState<Cylinder[]>([
-    {
-      id: '1',
-      serialNumber: 'CYL-001',
-      capacity: 10,
-      valveType: 'CGA-320',
-      manufacturingDate: '2020-03-15',
-      lastHydroTest: '2023-03-15',
-      nextHydroTest: '2028-03-15',
-      status: 'full',
-      location: 'dispatch',
-      lastFilling: '2024-01-10',
-      fillCount: 145
-    },
-    {
-      id: '2',
-      serialNumber: 'CYL-002',
-      capacity: 5,
-      valveType: 'CGA-320',
-      manufacturingDate: '2019-08-22',
-      lastHydroTest: '2022-08-22',
-      nextHydroTest: '2027-08-22',
-      status: 'empty',
-      location: 'filling_station',
-      lastFilling: '2024-01-08',
-      fillCount: 203
-    },
-    {
-      id: '3',
-      serialNumber: 'CYL-003',
-      capacity: 10,
-      valveType: 'CGA-320',
-      manufacturingDate: '2021-01-10',
-      lastHydroTest: '2024-01-10',
-      nextHydroTest: '2029-01-10',
-      status: 'filling',
-      location: 'filling_station',
-      lastFilling: '2024-01-09',
-      fillCount: 89
-    }
-  ]);
-
+  const { data: cylinders, isLoading } = useCylinders();
+  const updateCylinder = useUpdateCylinder();
+  const createCylinder = useCreateCylinder();
+  
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [locationFilter, setLocationFilter] = useState<string>('all');
+  const [stateFilter, setStateFilter] = useState('all');
+  const [locationFilter, setLocationFilter] = useState('all');
+  const [editingCylinder, setEditingCylinder] = useState<any>(null);
+  const [newCylinder, setNewCylinder] = useState({
+    serial_number: '',
+    capacity_kg: '',
+    valve_type: 'standard' as const,
+    manufacture_date: '',
+    last_hydrostatic_test: '',
+    next_hydrostatic_test: '',
+  });
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      empty: { label: 'Vacío', className: 'bg-gray-100 text-gray-800' },
-      full: { label: 'Lleno', className: 'bg-green-100 text-green-800' },
-      filling: { label: 'En Llenado', className: 'bg-yellow-100 text-yellow-800' },
-      maintenance: { label: 'Mantenimiento', className: 'bg-blue-100 text-blue-800' },
-      out_of_service: { label: 'Fuera de Servicio', className: 'bg-red-100 text-red-800' }
-    };
-    
-    const config = statusConfig[status as keyof typeof statusConfig];
-    return (
-      <Badge className={config.className}>
-        {config.label}
-      </Badge>
-    );
-  };
+  if (isLoading) {
+    return <div className="p-6">Cargando cilindros...</div>;
+  }
 
-  const getLocationBadge = (location: string) => {
-    const locationConfig = {
-      dispatch: { label: 'Despacho', className: 'bg-purple-100 text-purple-800' },
-      filling_station: { label: 'Estación de Llenado', className: 'bg-blue-100 text-blue-800' },
-      maintenance: { label: 'Mantenimiento', className: 'bg-orange-100 text-orange-800' },
-      out_of_service: { label: 'Fuera de Servicio', className: 'bg-red-100 text-red-800' }
-    };
-    
-    const config = locationConfig[location as keyof typeof locationConfig];
-    return (
-      <Badge variant="outline" className={config.className}>
-        {config.label}
-      </Badge>
-    );
-  };
-
-  const isMaintenanceNeeded = (nextHydroTest: string) => {
-    const nextDate = new Date(nextHydroTest);
-    const today = new Date();
-    const monthsUntilMaintenance = (nextDate.getTime() - today.getTime()) / (1000 * 3600 * 24 * 30);
-    return monthsUntilMaintenance <= 6;
-  };
-
-  const filteredCylinders = cylinders.filter(cylinder => {
-    const matchesSearch = cylinder.serialNumber.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || cylinder.status === statusFilter;
+  const filteredCylinders = cylinders?.filter(cylinder => {
+    const matchesSearch = cylinder.serial_number.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesState = stateFilter === 'all' || cylinder.state === stateFilter;
     const matchesLocation = locationFilter === 'all' || cylinder.location === locationFilter;
     
-    return matchesSearch && matchesStatus && matchesLocation;
-  });
+    return matchesSearch && matchesState && matchesLocation;
+  }) || [];
+
+  const getStateColor = (state: string) => {
+    switch (state) {
+      case 'full': return 'bg-green-100 text-green-800';
+      case 'empty': return 'bg-red-100 text-red-800';
+      case 'filling': return 'bg-blue-100 text-blue-800';
+      case 'maintenance': return 'bg-orange-100 text-orange-800';
+      case 'out_of_service': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStateLabel = (state: string) => {
+    switch (state) {
+      case 'full': return 'Lleno';
+      case 'empty': return 'Vacío';
+      case 'filling': return 'Llenando';
+      case 'maintenance': return 'Mantenimiento';
+      case 'out_of_service': return 'Fuera de Servicio';
+      default: return state;
+    }
+  };
+
+  const getLocationLabel = (location: string) => {
+    switch (location) {
+      case 'dispatch': return 'Despacho';
+      case 'filling_station': return 'Estación de Llenado';
+      case 'maintenance': return 'Mantenimiento';
+      case 'out_of_service': return 'Fuera de Servicio';
+      default: return location;
+    }
+  };
+
+  const handleUpdateCylinder = (cylinder: any, updates: any) => {
+    updateCylinder.mutate({ id: cylinder.id, updates });
+    setEditingCylinder(null);
+  };
+
+  const handleCreateCylinder = () => {
+    createCylinder.mutate({
+      ...newCylinder,
+      capacity_kg: parseFloat(newCylinder.capacity_kg),
+      manufacture_date: newCylinder.manufacture_date || null,
+      last_hydrostatic_test: newCylinder.last_hydrostatic_test || null,
+      next_hydrostatic_test: newCylinder.next_hydrostatic_test || null,
+    });
+    setNewCylinder({
+      serial_number: '',
+      capacity_kg: '',
+      valve_type: 'standard',
+      manufacture_date: '',
+      last_hydrostatic_test: '',
+      next_hydrostatic_test: '',
+    });
+  };
+
+  const stats = {
+    total: cylinders?.length || 0,
+    full: cylinders?.filter(c => c.state === 'full').length || 0,
+    empty: cylinders?.filter(c => c.state === 'empty').length || 0,
+    maintenance: cylinders?.filter(c => c.state === 'maintenance').length || 0,
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -132,219 +127,280 @@ const Cylinders = () => {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Gestión de Cilindros
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Control de inventario y estado de cilindros
-            </p>
+            <h1 className="text-3xl font-bold text-gray-900">Gestión de Cilindros</h1>
+            <p className="text-gray-600 mt-1">Control de inventario y estado de cilindros</p>
           </div>
-          <div className="flex gap-3">
-            <Button variant="outline">
-              <QrCode className="h-4 w-4 mr-2" />
-              Escanear QR
-            </Button>
-            <Button asChild>
-              <Link to="/cylinders/new">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button>
                 <Plus className="h-4 w-4 mr-2" />
                 Nuevo Cilindro
-              </Link>
-            </Button>
-          </div>
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Registrar Nuevo Cilindro</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label>Número de Serie</Label>
+                  <Input
+                    value={newCylinder.serial_number}
+                    onChange={(e) => setNewCylinder({...newCylinder, serial_number: e.target.value})}
+                    placeholder="CYL-001"
+                  />
+                </div>
+                <div>
+                  <Label>Capacidad (kg)</Label>
+                  <Input
+                    type="number"
+                    value={newCylinder.capacity_kg}
+                    onChange={(e) => setNewCylinder({...newCylinder, capacity_kg: e.target.value})}
+                    placeholder="10"
+                  />
+                </div>
+                <div>
+                  <Label>Tipo de Válvula</Label>
+                  <Select 
+                    value={newCylinder.valve_type} 
+                    onValueChange={(value) => setNewCylinder({...newCylinder, valve_type: value as any})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="standard">Estándar</SelectItem>
+                      <SelectItem value="safety">Seguridad</SelectItem>
+                      <SelectItem value="pressure_relief">Alivio de Presión</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Fecha de Fabricación</Label>
+                  <Input
+                    type="date"
+                    value={newCylinder.manufacture_date}
+                    onChange={(e) => setNewCylinder({...newCylinder, manufacture_date: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label>Última Prueba Hidrostática</Label>
+                  <Input
+                    type="date"
+                    value={newCylinder.last_hydrostatic_test}
+                    onChange={(e) => setNewCylinder({...newCylinder, last_hydrostatic_test: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label>Próxima Prueba Hidrostática</Label>
+                  <Input
+                    type="date"
+                    value={newCylinder.next_hydrostatic_test}
+                    onChange={(e) => setNewCylinder({...newCylinder, next_hydrostatic_test: e.target.value})}
+                  />
+                </div>
+                <Button onClick={handleCreateCylinder} className="w-full">
+                  Crear Cilindro
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="p-4 text-center">
+              <Package className="h-8 w-8 mx-auto mb-2 text-blue-600" />
+              <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
+              <div className="text-sm text-gray-600">Total</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-600" />
+              <div className="text-2xl font-bold text-green-600">{stats.full}</div>
+              <div className="text-sm text-gray-600">Llenos</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <XCircle className="h-8 w-8 mx-auto mb-2 text-red-600" />
+              <div className="text-2xl font-bold text-red-600">{stats.empty}</div>
+              <div className="text-sm text-gray-600">Vacíos</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <Clock className="h-8 w-8 mx-auto mb-2 text-orange-600" />
+              <div className="text-2xl font-bold text-orange-600">{stats.maintenance}</div>
+              <div className="text-sm text-gray-600">Mantenimiento</div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Filters */}
         <Card>
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Buscar por número de serie..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+          <CardContent className="p-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    placeholder="Buscar por número de serie..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
               </div>
-              
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="all">Todos los estados</option>
-                <option value="empty">Vacío</option>
-                <option value="full">Lleno</option>
-                <option value="filling">En Llenado</option>
-                <option value="maintenance">Mantenimiento</option>
-                <option value="out_of_service">Fuera de Servicio</option>
-              </select>
-
-              <select
-                value={locationFilter}
-                onChange={(e) => setLocationFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="all">Todas las ubicaciones</option>
-                <option value="dispatch">Despacho</option>
-                <option value="filling_station">Estación de Llenado</option>
-                <option value="maintenance">Mantenimiento</option>
-                <option value="out_of_service">Fuera de Servicio</option>
-              </select>
-
-              <Button variant="outline">
-                <Filter className="h-4 w-4 mr-2" />
-                Filtros Avanzados
-              </Button>
+              <Select value={stateFilter} onValueChange={setStateFilter}>
+                <SelectTrigger className="w-full sm:w-48">
+                  <SelectValue placeholder="Filtrar por estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los estados</SelectItem>
+                  <SelectItem value="full">Llenos</SelectItem>
+                  <SelectItem value="empty">Vacíos</SelectItem>
+                  <SelectItem value="filling">Llenando</SelectItem>
+                  <SelectItem value="maintenance">Mantenimiento</SelectItem>
+                  <SelectItem value="out_of_service">Fuera de Servicio</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={locationFilter} onValueChange={setLocationFilter}>
+                <SelectTrigger className="w-full sm:w-48">
+                  <SelectValue placeholder="Filtrar por ubicación" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas las ubicaciones</SelectItem>
+                  <SelectItem value="dispatch">Despacho</SelectItem>
+                  <SelectItem value="filling_station">Estación de Llenado</SelectItem>
+                  <SelectItem value="maintenance">Mantenimiento</SelectItem>
+                  <SelectItem value="out_of_service">Fuera de Servicio</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>
 
-        {/* Summary Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <Card>
-            <CardContent className="pt-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-gray-900">{cylinders.length}</div>
-                <div className="text-sm text-gray-600">Total</div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">
-                  {cylinders.filter(c => c.status === 'full').length}
-                </div>
-                <div className="text-sm text-gray-600">Llenos</div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-gray-600">
-                  {cylinders.filter(c => c.status === 'empty').length}
-                </div>
-                <div className="text-sm text-gray-600">Vacíos</div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-yellow-600">
-                  {cylinders.filter(c => c.status === 'filling').length}
-                </div>
-                <div className="text-sm text-gray-600">En Llenado</div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-red-600">
-                  {cylinders.filter(c => isMaintenanceNeeded(c.nextHydroTest)).length}
-                </div>
-                <div className="text-sm text-gray-600">Próx. Mant.</div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* Cylinders Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Lista de Cilindros ({filteredCylinders.length})</CardTitle>
+            <CardTitle>Lista de Cilindros</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                      Número de Serie
-                    </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                      Capacidad
-                    </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                      Estado
-                    </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                      Ubicación
-                    </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                      Último Llenado
-                    </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                      Próx. Mantenimiento
-                    </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                      Acciones
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredCylinders.map((cylinder) => (
-                    <tr key={cylinder.id} className="border-b hover:bg-gray-50">
-                      <td className="py-3 px-4">
-                        <div className="font-medium text-gray-900">
-                          {cylinder.serialNumber}
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Número de Serie</TableHead>
+                  <TableHead>Capacidad</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead>Ubicación</TableHead>
+                  <TableHead>Tipo de Válvula</TableHead>
+                  <TableHead>Próxima Prueba</TableHead>
+                  <TableHead>Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredCylinders.map((cylinder) => {
+                  const needsMaintenance = cylinder.next_hydrostatic_test && 
+                    new Date(cylinder.next_hydrostatic_test) <= new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
+                  
+                  return (
+                    <TableRow key={cylinder.id}>
+                      <TableCell className="font-medium">{cylinder.serial_number}</TableCell>
+                      <TableCell>{cylinder.capacity_kg} kg</TableCell>
+                      <TableCell>
+                        <Badge className={getStateColor(cylinder.state)}>
+                          {getStateLabel(cylinder.state)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{getLocationLabel(cylinder.location)}</TableCell>
+                      <TableCell>{cylinder.valve_type}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm">
+                            {cylinder.next_hydrostatic_test ? 
+                              new Date(cylinder.next_hydrostatic_test).toLocaleDateString('es-ES') : 
+                              'No registrada'
+                            }
+                          </span>
+                          {needsMaintenance && (
+                            <AlertTriangle className="h-4 w-4 text-orange-500" />
+                          )}
                         </div>
-                        <div className="text-sm text-gray-600">
-                          {cylinder.valveType}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="font-medium">{cylinder.capacity}kg</div>
-                        <div className="text-sm text-gray-600">
-                          {cylinder.fillCount} llenados
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        {getStatusBadge(cylinder.status)}
-                      </td>
-                      <td className="py-3 px-4">
-                        {getLocationBadge(cylinder.location)}
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="text-sm">
-                          {cylinder.lastFilling ? 
-                            new Date(cylinder.lastFilling).toLocaleDateString('es-ES') 
-                            : 'N/A'
-                          }
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className={`text-sm ${isMaintenanceNeeded(cylinder.nextHydroTest) ? 'text-red-600 font-semibold' : 'text-gray-600'}`}>
-                          {new Date(cylinder.nextHydroTest).toLocaleDateString('es-ES')}
-                        </div>
-                        {isMaintenanceNeeded(cylinder.nextHydroTest) && (
-                          <Badge variant="destructive" className="text-xs mt-1">
-                            Urgente
-                          </Badge>
-                        )}
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline" asChild>
-                            <Link to={`/cylinders/${cylinder.id}`}>
-                              <Eye className="h-3 w-3" />
-                            </Link>
-                          </Button>
-                          <Button size="sm" variant="outline" asChild>
-                            <Link to={`/cylinders/${cylinder.id}/edit`}>
-                              <Edit className="h-3 w-3" />
-                            </Link>
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      </TableCell>
+                      <TableCell>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => setEditingCylinder(cylinder)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Editar Cilindro</DialogTitle>
+                            </DialogHeader>
+                            {editingCylinder && (
+                              <div className="space-y-4">
+                                <div>
+                                  <Label>Estado</Label>
+                                  <Select 
+                                    value={editingCylinder.state} 
+                                    onValueChange={(value) => setEditingCylinder({...editingCylinder, state: value})}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="empty">Vacío</SelectItem>
+                                      <SelectItem value="full">Lleno</SelectItem>
+                                      <SelectItem value="filling">Llenando</SelectItem>
+                                      <SelectItem value="maintenance">Mantenimiento</SelectItem>
+                                      <SelectItem value="out_of_service">Fuera de Servicio</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div>
+                                  <Label>Ubicación</Label>
+                                  <Select 
+                                    value={editingCylinder.location} 
+                                    onValueChange={(value) => setEditingCylinder({...editingCylinder, location: value})}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="dispatch">Despacho</SelectItem>
+                                      <SelectItem value="filling_station">Estación de Llenado</SelectItem>
+                                      <SelectItem value="maintenance">Mantenimiento</SelectItem>
+                                      <SelectItem value="out_of_service">Fuera de Servicio</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <Button 
+                                  onClick={() => handleUpdateCylinder(cylinder, {
+                                    state: editingCylinder.state,
+                                    location: editingCylinder.location
+                                  })} 
+                                  className="w-full"
+                                >
+                                  Actualizar
+                                </Button>
+                              </div>
+                            )}
+                          </DialogContent>
+                        </Dialog>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       </div>
