@@ -12,7 +12,7 @@ import {
   Clock,
   User,
   Package,
-  TrendingRight
+  TrendingUp
 } from 'lucide-react';
 
 interface Transfer {
@@ -242,7 +242,7 @@ const Transfers = () => {
                     <Badge className={locationColors[fromLocation]}>
                       {locationNames[fromLocation]}
                     </Badge>
-                    <TrendingRight className="h-4 w-4 text-blue-600" />
+                    <TrendingUp className="h-4 w-4 text-blue-600" />
                     <Badge className={locationColors[toLocation]}>
                       {locationNames[toLocation]}
                     </Badge>
@@ -313,7 +313,7 @@ const Transfers = () => {
                       <Badge variant="outline" className={locationColors[transfer.fromLocation]}>
                         {locationNames[transfer.fromLocation]}
                       </Badge>
-                      <TrendingRight className="h-3 w-3 text-gray-400" />
+                      <TrendingUp className="h-3 w-3 text-gray-400" />
                       <Badge variant="outline" className={locationColors[transfer.toLocation]}>
                         {locationNames[transfer.toLocation]}
                       </Badge>
@@ -359,8 +359,8 @@ const Transfers = () => {
 
               {/* Arrows */}
               <div className="flex items-center space-x-4">
-                <TrendingRight className="h-6 w-6 text-gray-400" />
-                <TrendingRight className="h-6 w-6 text-gray-400 rotate-180" />
+                <TrendingUp className="h-6 w-6 text-gray-400" />
+                <TrendingUp className="h-6 w-6 text-gray-400 rotate-180" />
               </div>
 
               {/* Estación de Llenado */}
@@ -377,8 +377,8 @@ const Transfers = () => {
 
               {/* Arrows */}
               <div className="flex items-center space-x-4">
-                <TrendingRight className="h-6 w-6 text-gray-400" />
-                <TrendingRight className="h-6 w-6 text-gray-400 rotate-180" />
+                <TrendingUp className="h-6 w-6 text-gray-400" />
+                <TrendingUp className="h-6 w-6 text-gray-400 rotate-180" />
               </div>
 
               {/* Mantenimiento */}
