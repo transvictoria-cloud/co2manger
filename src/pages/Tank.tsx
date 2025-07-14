@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
-  FuelTank, 
+  Fuel, 
   Plus, 
   ArrowDown, 
   ArrowUp,
@@ -78,7 +78,7 @@ const Tank = () => {
           <CardContent>
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <FuelTank className="h-5 w-5 text-blue-500" />
+                <Fuel className="h-5 w-5 text-blue-500" />
                 <span className="text-lg font-semibold">
                   {tankInventory?.current_level_kg} kg / {tankInventory?.capacity_kg} kg
                 </span>

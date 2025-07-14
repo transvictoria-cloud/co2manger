@@ -20,14 +20,18 @@ import {
 } from "@/components/ui/table"
 import { useCreateTransfer } from '@/hooks/useTransfers';
 
+import { Enums } from '@/integrations/supabase/types';
+
+type CylinderLocation = Enums<'cylinder_location'>;
+
 const Transfers = () => {
   const { data: cylinders } = useCylinders();
   const { data: transfers, isLoading } = useTransfers();
   const createTransfer = useCreateTransfer();
 
   const [selectedCylinder, setSelectedCylinder] = useState('');
-  const [fromLocation, setFromLocation] = useState('');
-  const [toLocation, setToLocation] = useState('');
+  const [fromLocation, setFromLocation] = useState<CylinderLocation | ''>('');
+  const [toLocation, setToLocation] = useState<CylinderLocation | ''>('');
   const [operator, setOperator] = useState('');
   const [notes, setNotes] = useState('');
 
@@ -90,7 +94,7 @@ const Transfers = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Desde</Label>
-                <Select value={fromLocation} onValueChange={setFromLocation}>
+                <Select value={fromLocation} onValueChange={(value) => setFromLocation(value as CylinderLocation)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Ubicación de origen" />
                   </SelectTrigger>
@@ -104,7 +108,7 @@ const Transfers = () => {
               </div>
               <div>
                 <Label>Hacia</Label>
-                <Select value={toLocation} onValueChange={setToLocation}>
+                <Select value={toLocation} onValueChange={(value) => setToLocation(value as CylinderLocation)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Ubicación de destino" />
                   </SelectTrigger>
