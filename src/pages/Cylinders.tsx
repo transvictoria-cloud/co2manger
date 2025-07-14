@@ -116,11 +116,33 @@ const Cylinders = () => {
     });
   };
 
+  // Group cylinders by capacity and state
+  const getStatsByCapacity = () => {
+    if (!cylinders) return {};
+    
+    const capacities = [...new Set(cylinders.map(c => c.capacity_kg))].sort((a, b) => a - b);
+    const statsByCapacity: Record<number, { total: number; full: number; empty: number }> = {};
+    
+    capacities.forEach(capacity => {
+      const cylindersOfCapacity = cylinders.filter(c => c.capacity_kg === capacity);
+      statsByCapacity[capacity] = {
+        total: cylindersOfCapacity.length,
+        full: cylindersOfCapacity.filter(c => c.state === 'full').length,
+        empty: cylindersOfCapacity.filter(c => c.state === 'empty').length,
+      };
+    });
+    
+    return statsByCapacity;
+  };
+
+  const statsByCapacity = getStatsByCapacity();
+  
   const stats = {
     total: cylinders?.length || 0,
     full: cylinders?.filter(c => c.state === 'full').length || 0,
     empty: cylinders?.filter(c => c.state === 'empty').length || 0,
     maintenance: cylinders?.filter(c => c.state === 'maintenance').length || 0,
+    byCapacity: statsByCapacity,
   };
 
   return (
@@ -215,21 +237,36 @@ const Cylinders = () => {
             <CardContent className="p-4 text-center">
               <Package className="h-8 w-8 mx-auto mb-2 text-blue-600" />
               <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-              <div className="text-sm text-gray-600">Total</div>
+              <div className="text-sm text-gray-600">Total Cilindros</div>
+              <div className="text-xs text-gray-500 mt-1">
+                {Object.entries(stats.byCapacity).map(([capacity, data]) => (
+                  <div key={capacity}>{capacity}kg: {data.total}</div>
+                ))}
+              </div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
               <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-600" />
               <div className="text-2xl font-bold text-green-600">{stats.full}</div>
-              <div className="text-sm text-gray-600">Llenos</div>
+              <div className="text-sm text-gray-600">Cilindros Llenos</div>
+              <div className="text-xs text-gray-500 mt-1">
+                {Object.entries(stats.byCapacity).map(([capacity, data]) => (
+                  <div key={capacity}>{capacity}kg: {data.full}</div>
+                ))}
+              </div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
               <XCircle className="h-8 w-8 mx-auto mb-2 text-red-600" />
               <div className="text-2xl font-bold text-red-600">{stats.empty}</div>
-              <div className="text-sm text-gray-600">Vacíos</div>
+              <div className="text-sm text-gray-600">Cilindros Vacíos</div>
+              <div className="text-xs text-gray-500 mt-1">
+                {Object.entries(stats.byCapacity).map(([capacity, data]) => (
+                  <div key={capacity}>{capacity}kg: {data.empty}</div>
+                ))}
+              </div>
             </CardContent>
           </Card>
           <Card>

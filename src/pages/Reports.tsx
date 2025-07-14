@@ -10,7 +10,8 @@ import {
   Package,
   Wrench,
   Fuel,
-  ArrowRightLeft
+  ArrowRightLeft,
+  Factory
 } from 'lucide-react';
 import { useReportsData, useExportExcel } from '@/hooks/useReports';
 import { useCylinders } from '@/hooks/useCylinders';
@@ -26,6 +27,27 @@ const Reports = () => {
     return <div className="p-6">Cargando datos para reportes...</div>;
   }
 
+  // Group cylinders by capacity and state
+  const getStatsByCapacity = () => {
+    if (!cylinders) return {};
+    
+    const capacities = [...new Set(cylinders.map(c => c.capacity_kg))].sort((a, b) => a - b);
+    const statsByCapacity: Record<number, { total: number; full: number; empty: number }> = {};
+    
+    capacities.forEach(capacity => {
+      const cylindersOfCapacity = cylinders.filter(c => c.capacity_kg === capacity);
+      statsByCapacity[capacity] = {
+        total: cylindersOfCapacity.length,
+        full: cylindersOfCapacity.filter(c => c.state === 'full').length,
+        empty: cylindersOfCapacity.filter(c => c.state === 'empty').length,
+      };
+    });
+    
+    return statsByCapacity;
+  };
+
+  const statsByCapacity = getStatsByCapacity();
+
   const stats = {
     totalCylinders: cylinders?.length || 0,
     fullCylinders: cylinders?.filter(c => c.state === 'full').length || 0,
@@ -35,6 +57,7 @@ const Reports = () => {
     transfers: reportsData?.transfers?.length || 0,
     tankLevel: tankInventory?.current_level_kg || 0,
     tankCapacity: tankInventory?.capacity_kg || 0,
+    byCapacity: statsByCapacity,
   };
 
   const fillPercentage = (stats.tankLevel / stats.tankCapacity) * 100;
@@ -59,6 +82,11 @@ const Reports = () => {
                 <div>
                   <div className="text-2xl font-bold text-gray-900">{stats.totalCylinders}</div>
                   <div className="text-sm text-gray-600">Total Cilindros</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {Object.entries(stats.byCapacity).map(([capacity, data]) => (
+                      <div key={capacity}>{capacity}kg: {data.total}</div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -70,6 +98,11 @@ const Reports = () => {
                 <div>
                   <div className="text-2xl font-bold text-green-600">{stats.fullCylinders}</div>
                   <div className="text-sm text-gray-600">Cilindros Llenos</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {Object.entries(stats.byCapacity).map(([capacity, data]) => (
+                      <div key={capacity}>{capacity}kg: {data.full}</div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -77,10 +110,15 @@ const Reports = () => {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center">
-                <Wrench className="h-8 w-8 text-orange-600 mr-3" />
+                <Package className="h-8 w-8 text-red-600 mr-3" />
                 <div>
-                  <div className="text-2xl font-bold text-orange-600">{stats.maintenanceRecords}</div>
-                  <div className="text-sm text-gray-600">Mantenimientos</div>
+                  <div className="text-2xl font-bold text-red-600">{stats.emptyCylinders}</div>
+                  <div className="text-sm text-gray-600">Cilindros Vacíos</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {Object.entries(stats.byCapacity).map(([capacity, data]) => (
+                      <div key={capacity}>{capacity}kg: {data.empty}</div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -88,7 +126,7 @@ const Reports = () => {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center">
-                <Fuel className="h-8 w-8 text-purple-600 mr-3" />
+                <Factory className="h-8 w-8 text-purple-600 mr-3" />
                 <div>
                   <div className="text-2xl font-bold text-purple-600">{fillPercentage.toFixed(1)}%</div>
                   <div className="text-sm text-gray-600">Nivel Tanque</div>
