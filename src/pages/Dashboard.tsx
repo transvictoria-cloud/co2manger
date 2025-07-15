@@ -35,10 +35,19 @@ const Dashboard = () => {
 
   const cylinderStats = {
     total: cylinders?.length || 0,
-    full: cylinders?.filter(c => c.state === 'full').length || 0,
-    empty: cylinders?.filter(c => c.state === 'empty').length || 0,
     maintenance: cylinders?.filter(c => c.state === 'maintenance').length || 0,
   };
+
+  // Estadísticas detalladas por capacidad
+  const capacityStats = cylinders?.reduce((acc, cylinder) => {
+    const capacity = cylinder.capacity_kg;
+    if (!acc[capacity]) {
+      acc[capacity] = { total: 0, full: 0, empty: 0, maintenance: 0 };
+    }
+    acc[capacity].total++;
+    acc[capacity][cylinder.state]++;
+    return acc;
+  }, {} as Record<number, { total: number; full: number; empty: number; maintenance: number }>) || {};
 
   const today = new Date().toDateString();
   const todayFillings = fillings?.filter(f => 
@@ -165,40 +174,110 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {/* Cylinder Statistics by Capacity */}
+        <div className="space-y-6">
+          {/* Total Cylinders */}
           <Card>
-            <CardContent className="p-4 text-center">
-              <Package className="h-8 w-8 mx-auto mb-2 text-blue-600" />
-              <div className="text-2xl font-bold text-gray-900">{cylinderStats.total}</div>
-              <div className="text-xs text-gray-600">Total Cilindros</div>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Package className="h-5 w-5 mr-2 text-blue-600" />
+                Total Cilindros por Capacidad
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Object.entries(capacityStats).map(([capacity, stats]) => (
+                  <div key={capacity} className="p-4 border rounded-lg">
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-gray-900">{capacity} kg</div>
+                      <div className="text-2xl font-bold text-blue-600 mt-1">{stats.total}</div>
+                      <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
+                        <div className="bg-green-50 p-2 rounded">
+                          <div className="text-green-600 font-semibold">{stats.full}</div>
+                          <div className="text-green-700">Llenos</div>
+                        </div>
+                        <div className="bg-red-50 p-2 rounded">
+                          <div className="text-red-600 font-semibold">{stats.empty}</div>
+                          <div className="text-red-700">Vacíos</div>
+                        </div>
+                      </div>
+                      {stats.maintenance > 0 && (
+                        <div className="bg-orange-50 p-2 rounded mt-2 text-sm">
+                          <div className="text-orange-600 font-semibold">{stats.maintenance}</div>
+                          <div className="text-orange-700">Mantenimiento</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {Object.keys(capacityStats).length === 0 && (
+                  <div className="col-span-full text-center text-gray-500 py-8">
+                    No hay cilindros registrados
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
-          
+
+          {/* Full Cylinders by Capacity */}
           <Card>
-            <CardContent className="p-4 text-center">
-              <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-600" />
-              <div className="text-2xl font-bold text-green-600">{cylinderStats.full}</div>
-              <div className="text-xs text-gray-600">Llenos</div>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <CheckCircle className="h-5 w-5 mr-2 text-green-600" />
+                Cilindros Llenos por Capacidad
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {Object.entries(capacityStats).map(([capacity, stats]) => (
+                  <Card key={capacity}>
+                    <CardContent className="p-4 text-center">
+                      <div className="text-sm font-medium text-gray-600 mb-2">{capacity} kg</div>
+                      <div className="text-2xl font-bold text-green-600">{stats.full}</div>
+                      <div className="text-xs text-gray-500">Llenos</div>
+                    </CardContent>
+                  </Card>
+                ))}
+                {Object.keys(capacityStats).length === 0 && (
+                  <div className="col-span-full text-center text-gray-500 py-4">
+                    No hay datos disponibles
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
-          
+
+          {/* Empty Cylinders by Capacity */}
           <Card>
-            <CardContent className="p-4 text-center">
-              <XCircle className="h-8 w-8 mx-auto mb-2 text-red-600" />
-              <div className="text-2xl font-bold text-red-600">{cylinderStats.empty}</div>
-              <div className="text-xs text-gray-600">Vacíos</div>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <XCircle className="h-5 w-5 mr-2 text-red-600" />
+                Cilindros Vacíos por Capacidad
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {Object.entries(capacityStats).map(([capacity, stats]) => (
+                  <Card key={capacity}>
+                    <CardContent className="p-4 text-center">
+                      <div className="text-sm font-medium text-gray-600 mb-2">{capacity} kg</div>
+                      <div className="text-2xl font-bold text-red-600">{stats.empty}</div>
+                      <div className="text-xs text-gray-500">Vacíos</div>
+                    </CardContent>
+                  </Card>
+                ))}
+                {Object.keys(capacityStats).length === 0 && (
+                  <div className="col-span-full text-center text-gray-500 py-4">
+                    No hay datos disponibles
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
-          
-          <Card>
-            <CardContent className="p-4 text-center">
-              <Clock className="h-8 w-8 mx-auto mb-2 text-orange-600" />
-              <div className="text-2xl font-bold text-orange-600">{cylinderStats.maintenance}</div>
-              <div className="text-xs text-gray-600">Mantenimiento</div>
-            </CardContent>
-          </Card>
-          
+        </div>
+
+        {/* Daily Activity Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card>
             <CardContent className="p-4 text-center">
               <TrendingUp className="h-8 w-8 mx-auto mb-2 text-purple-600" />
@@ -212,6 +291,22 @@ const Dashboard = () => {
               <MapPin className="h-8 w-8 mx-auto mb-2 text-indigo-600" />
               <div className="text-2xl font-bold text-indigo-600">{todayTransfers}</div>
               <div className="text-xs text-gray-600">Traslados Hoy</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4 text-center">
+              <Package className="h-8 w-8 mx-auto mb-2 text-blue-600" />
+              <div className="text-2xl font-bold text-gray-900">{cylinderStats.total}</div>
+              <div className="text-xs text-gray-600">Total Cilindros</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4 text-center">
+              <Clock className="h-8 w-8 mx-auto mb-2 text-orange-600" />
+              <div className="text-2xl font-bold text-orange-600">{cylinderStats.maintenance}</div>
+              <div className="text-xs text-gray-600">Mantenimiento</div>
             </CardContent>
           </Card>
         </div>
