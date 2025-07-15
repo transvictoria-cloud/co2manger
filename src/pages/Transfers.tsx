@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { 
   ArrowRightLeft,
@@ -29,7 +30,7 @@ const Transfers = () => {
   const { data: transfers, isLoading } = useTransfers();
   const createTransfer = useCreateTransfer();
 
-  const [selectedCylinder, setSelectedCylinder] = useState('');
+  const [selectedCylinders, setSelectedCylinders] = useState<string[]>([]);
   const [fromLocation, setFromLocation] = useState<CylinderLocation | ''>('');
   const [toLocation, setToLocation] = useState<CylinderLocation | ''>('');
   const [operator, setOperator] = useState('');
@@ -39,26 +40,50 @@ const Transfers = () => {
     return <div className="p-6">Cargando traslados...</div>;
   }
 
-  const handleTransfer = () => {
-    if (!selectedCylinder || !fromLocation || !toLocation || !operator) {
-      toast.error('Por favor completa todos los campos');
+  // Filtrar cilindros por ubicación seleccionada
+  const availableCylinders = useMemo(() => {
+    if (!cylinders || !fromLocation) return [];
+    return cylinders.filter(cylinder => cylinder.location === fromLocation);
+  }, [cylinders, fromLocation]);
+
+  const handleCylinderSelection = (cylinderId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedCylinders(prev => [...prev, cylinderId]);
+    } else {
+      setSelectedCylinders(prev => prev.filter(id => id !== cylinderId));
+    }
+  };
+
+  const handleTransfer = async () => {
+    if (selectedCylinders.length === 0 || !fromLocation || !toLocation || !operator) {
+      toast.error('Por favor completa todos los campos y selecciona al menos un cilindro');
       return;
     }
 
-    createTransfer.mutate({
-      cylinder_id: selectedCylinder,
-      from_location: fromLocation,
-      to_location: toLocation,
-      operator,
-      notes: notes || null,
-      date_time: new Date().toISOString(),
-    });
-
-    setSelectedCylinder('');
-    setFromLocation('');
-    setToLocation('');
-    setOperator('');
-    setNotes('');
+    try {
+      // Crear traslados para todos los cilindros seleccionados
+      for (const cylinderId of selectedCylinders) {
+        await createTransfer.mutateAsync({
+          cylinder_id: cylinderId,
+          from_location: fromLocation,
+          to_location: toLocation,
+          operator,
+          notes: notes || null,
+          date_time: new Date().toISOString(),
+        });
+      }
+      
+      // Limpiar formulario
+      setSelectedCylinders([]);
+      setFromLocation('');
+      setToLocation('');
+      setOperator('');
+      setNotes('');
+      
+      toast.success(`${selectedCylinders.length} traslado(s) registrado(s) correctamente`);
+    } catch (error) {
+      toast.error('Error al procesar los traslados');
+    }
   };
 
   return (
@@ -77,49 +102,70 @@ const Transfers = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label>Cilindro</Label>
-              <Select value={selectedCylinder} onValueChange={setSelectedCylinder}>
+              <Label>Ubicación de Origen</Label>
+              <Select value={fromLocation} onValueChange={(value) => {
+                setFromLocation(value as CylinderLocation);
+                setSelectedCylinders([]); // Limpiar selección al cambiar origen
+              }}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar cilindro" />
+                  <SelectValue placeholder="Seleccionar ubicación de origen" />
                 </SelectTrigger>
                 <SelectContent>
-                  {cylinders?.map((cylinder) => (
-                    <SelectItem key={cylinder.id} value={cylinder.id}>
-                      {cylinder.serial_number}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="dispatch">Despacho</SelectItem>
+                  <SelectItem value="filling_station">Estación de Llenado</SelectItem>
+                  <SelectItem value="maintenance">Mantenimiento</SelectItem>
+                  <SelectItem value="out_of_service">Fuera de Servicio</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            {fromLocation && (
               <div>
-                <Label>Desde</Label>
-                <Select value={fromLocation} onValueChange={(value) => setFromLocation(value as CylinderLocation)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Ubicación de origen" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="dispatch">Despacho</SelectItem>
-                    <SelectItem value="filling_station">Estación de Llenado</SelectItem>
-                    <SelectItem value="maintenance">Mantenimiento</SelectItem>
-                    <SelectItem value="out_of_service">Fuera de Servicio</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>Cilindros Disponibles en {fromLocation === 'dispatch' ? 'Despacho' : 
+                  fromLocation === 'filling_station' ? 'Estación de Llenado' : 
+                  fromLocation === 'maintenance' ? 'Mantenimiento' : 'Fuera de Servicio'}</Label>
+                <div className="border rounded-lg p-4 max-h-64 overflow-y-auto">
+                  {availableCylinders.length === 0 ? (
+                    <p className="text-gray-500 text-center py-4">No hay cilindros disponibles en esta ubicación</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {availableCylinders.map((cylinder) => (
+                        <div key={cylinder.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={cylinder.id}
+                            checked={selectedCylinders.includes(cylinder.id)}
+                            onCheckedChange={(checked) => 
+                              handleCylinderSelection(cylinder.id, checked as boolean)
+                            }
+                          />
+                          <Label htmlFor={cylinder.id} className="text-sm">
+                            {cylinder.serial_number} - {cylinder.capacity_kg}kg ({cylinder.state})
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {selectedCylinders.length > 0 && (
+                  <p className="text-sm text-blue-600 mt-2">
+                    {selectedCylinders.length} cilindro(s) seleccionado(s)
+                  </p>
+                )}
               </div>
-              <div>
-                <Label>Hacia</Label>
-                <Select value={toLocation} onValueChange={(value) => setToLocation(value as CylinderLocation)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Ubicación de destino" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="dispatch">Despacho</SelectItem>
-                    <SelectItem value="filling_station">Estación de Llenado</SelectItem>
-                    <SelectItem value="maintenance">Mantenimiento</SelectItem>
-                    <SelectItem value="out_of_service">Fuera de Servicio</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            )}
+            <div>
+              <Label>Ubicación de Destino</Label>
+              <Select value={toLocation} onValueChange={(value) => setToLocation(value as CylinderLocation)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar ubicación de destino" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="dispatch">Despacho</SelectItem>
+                  <SelectItem value="filling_station">Estación de Llenado</SelectItem>
+                  <SelectItem value="maintenance">Mantenimiento</SelectItem>
+                  <SelectItem value="out_of_service">Fuera de Servicio</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label>Operador</Label>
@@ -139,8 +185,12 @@ const Transfers = () => {
                 onChange={(e) => setNotes(e.target.value)}
               />
             </div>
-            <Button onClick={handleTransfer} className="w-full">
-              Registrar Traslado
+            <Button 
+              onClick={handleTransfer} 
+              className="w-full" 
+              disabled={selectedCylinders.length === 0 || !fromLocation || !toLocation || !operator}
+            >
+              Registrar {selectedCylinders.length > 0 ? selectedCylinders.length : ''} Traslado{selectedCylinders.length > 1 ? 's' : ''}
             </Button>
           </CardContent>
         </Card>

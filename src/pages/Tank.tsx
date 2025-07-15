@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
-  Fuel, 
+  Factory, 
   Plus, 
   ArrowDown, 
   ArrowUp,
@@ -33,6 +33,10 @@ const Tank = () => {
   const [operator, setOperator] = useState('');
   const [supplier, setSupplier] = useState('');
   const [notes, setNotes] = useState('');
+  const [movementDate, setMovementDate] = useState(() => {
+    const now = new Date();
+    return now.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:MM
+  });
 
   if (isLoading) {
     return <div className="p-6">Cargando movimientos de tanque...</div>;
@@ -50,13 +54,15 @@ const Tank = () => {
       operator,
       supplier: supplier || null,
       notes: notes || null,
-      date_time: new Date().toISOString(),
+      date_time: new Date(movementDate).toISOString(),
     });
 
     setAmount('');
     setOperator('');
     setSupplier('');
     setNotes('');
+    const now = new Date();
+    setMovementDate(now.toISOString().slice(0, 16));
   };
 
   return (
@@ -78,7 +84,7 @@ const Tank = () => {
           <CardContent>
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Fuel className="h-5 w-5 text-blue-500" />
+                <Factory className="h-5 w-5 text-blue-500" />
                 <span className="text-lg font-semibold">
                   {tankInventory?.current_level_kg} kg / {tankInventory?.capacity_kg} kg
                 </span>
@@ -103,7 +109,7 @@ const Tank = () => {
           </CardHeader>
           <CardContent>
             <div className="grid gap-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="movementType">Tipo de Movimiento</Label>
                   <Select value={movementType} onValueChange={setMovementType}>
@@ -124,6 +130,15 @@ const Tank = () => {
                     placeholder="Cantidad"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="movementDate">Fecha y Hora</Label>
+                  <Input
+                    type="datetime-local"
+                    id="movementDate"
+                    value={movementDate}
+                    onChange={(e) => setMovementDate(e.target.value)}
                   />
                 </div>
               </div>
