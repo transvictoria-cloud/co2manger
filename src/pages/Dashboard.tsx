@@ -160,7 +160,7 @@ const Dashboard = () => {
               </div>
               
               <div className="text-center">
-                <div className="text-2xl font-bold text-gray-900">{tankCapacity - tankLevel} kg</div>
+                <div className="text-2xl font-bold text-gray-900">{(tankCapacity - tankLevel).toFixed(2)} kg</div>
                 <div className="text-sm text-gray-600">Disponible para llenado</div>
               </div>
               
