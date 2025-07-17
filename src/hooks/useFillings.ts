@@ -32,13 +32,21 @@ export const useCreateFilling = () => {
   
   return useMutation({
     mutationFn: async (filling: Omit<Filling, 'id' | 'created_at'>) => {
+      console.log('Creating filling:', filling);
+      
       const { data, error } = await supabase
         .from('fillings')
         .insert(filling)
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating filling:', error);
+        throw error;
+      }
+      
+      console.log('Filling created successfully:', data);
+      console.log('Trigger should now update tank inventory and create movement record');
       return data;
     },
     onSuccess: () => {
@@ -49,6 +57,7 @@ export const useCreateFilling = () => {
       toast.success('Llenado registrado correctamente');
     },
     onError: (error) => {
+      console.error('Filling error:', error);
       toast.error('Error al registrar llenado: ' + error.message);
     },
   });

@@ -44,13 +44,20 @@ export const useCreateTankMovement = () => {
   
   return useMutation({
     mutationFn: async (movement: Omit<TankMovement, 'id' | 'created_at'>) => {
+      console.log('Creating tank movement:', movement);
+      
       const { data, error } = await supabase
         .from('tank_movements')
         .insert(movement)
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating tank movement:', error);
+        throw error;
+      }
+      
+      console.log('Tank movement created successfully:', data);
       return data;
     },
     onSuccess: () => {
@@ -59,6 +66,7 @@ export const useCreateTankMovement = () => {
       toast.success('Movimiento de tanque registrado correctamente');
     },
     onError: (error) => {
+      console.error('Tank movement error:', error);
       toast.error('Error al registrar movimiento: ' + error.message);
     },
   });
