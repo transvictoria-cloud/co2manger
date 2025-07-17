@@ -29,10 +29,12 @@ import {
 } from 'lucide-react';
 import { useMaintenance, useCreateMaintenance, useUpdateMaintenance, useDeleteMaintenance } from '@/hooks/useMaintenance';
 import { useCylinders } from '@/hooks/useCylinders';
+import { useTransfers } from '@/hooks/useTransfers';
 
 const Maintenance = () => {
   const { data: maintenance, isLoading } = useMaintenance();
   const { data: cylinders } = useCylinders();
+  const { data: transfers } = useTransfers();
   const createMaintenance = useCreateMaintenance();
   const updateMaintenance = useUpdateMaintenance();
   const deleteMaintenance = useDeleteMaintenance();
@@ -133,7 +135,11 @@ const Maintenance = () => {
     completed: maintenance?.filter(r => r.status === 'completado').length || 0,
     pending: maintenance?.filter(r => r.status === 'pendiente').length || 0,
     in_progress: maintenance?.filter(r => r.status === 'en_proceso').length || 0,
+    cylinders_in_maintenance: cylinders?.filter(c => c.location === 'maintenance').length || 0,
   };
+
+  // Filtrar traslados hacia mantenimiento
+  const maintenanceTransfers = transfers?.filter(t => t.to_location === 'maintenance') || [];
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -229,7 +235,7 @@ const Maintenance = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <Card>
             <CardContent className="p-4 text-center">
               <Wrench className="h-8 w-8 mx-auto mb-2 text-blue-600" />
@@ -256,6 +262,13 @@ const Maintenance = () => {
               <Calendar className="h-8 w-8 mx-auto mb-2 text-blue-600" />
               <div className="text-2xl font-bold text-blue-600">{stats.in_progress}</div>
               <div className="text-sm text-gray-600">En Proceso</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <Wrench className="h-8 w-8 mx-auto mb-2 text-red-600" />
+              <div className="text-2xl font-bold text-red-600">{stats.cylinders_in_maintenance}</div>
+              <div className="text-sm text-gray-600">En Mantenimiento</div>
             </CardContent>
           </Card>
         </div>
@@ -301,6 +314,46 @@ const Maintenance = () => {
                 </SelectContent>
               </Select>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Cylinders in Maintenance */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Cilindros en Mantenimiento</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Serial</TableHead>
+                  <TableHead>Capacidad</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead>Fecha Traslado</TableHead>
+                  <TableHead>Motivo</TableHead>
+                  <TableHead>Operador</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {maintenanceTransfers.slice(0, 10).map((transfer) => {
+                  const cylinder = cylinders?.find(c => c.id === transfer.cylinder_id);
+                  return (
+                    <TableRow key={transfer.id}>
+                      <TableCell>{cylinder?.serial_number}</TableCell>
+                      <TableCell>{cylinder?.capacity_kg} kg</TableCell>
+                      <TableCell>
+                        <Badge className="bg-red-100 text-red-800">
+                          {cylinder?.state}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{new Date(transfer.date_time || '').toLocaleDateString('es-ES')}</TableCell>
+                      <TableCell>{transfer.notes || '-'}</TableCell>
+                      <TableCell>{transfer.operator}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
 
