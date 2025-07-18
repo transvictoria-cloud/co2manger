@@ -6,6 +6,20 @@ import { toast } from 'sonner';
 
 export type Transfer = Tables<'transfers'>;
 
+export type TransferInput = {
+  cylinder_id?: string | null;
+  from_location: 'dispatch' | 'filling_station' | 'maintenance' | 'out_of_service' | 'assignments' | 'returns';
+  to_location: 'dispatch' | 'filling_station' | 'maintenance' | 'out_of_service' | 'assignments' | 'returns';
+  operator: string;
+  notes?: string | null;
+  client_name?: string | null;
+  cylinder_capacity_kg?: number | null;
+  cylinder_quantity?: number | null;
+  delivery_note_number?: string | null;
+  driver_name?: string | null;
+  date_time: string;
+};
+
 export const useTransfers = () => {
   return useQuery({
     queryKey: ['transfers'],
@@ -31,14 +45,21 @@ export const useCreateTransfer = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (transfer: Omit<Transfer, 'id' | 'created_at'>) => {
+    mutationFn: async (transfer: TransferInput) => {
+      console.log('Creating transfer:', transfer);
+      
       const { data, error } = await supabase
         .from('transfers')
         .insert(transfer)
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating transfer:', error);
+        throw error;
+      }
+      
+      console.log('Transfer created successfully:', data);
       return data;
     },
     onSuccess: () => {
@@ -47,6 +68,7 @@ export const useCreateTransfer = () => {
       toast.success('Traslado registrado correctamente');
     },
     onError: (error) => {
+      console.error('Transfer error:', error);
       toast.error('Error al registrar traslado: ' + error.message);
     },
   });

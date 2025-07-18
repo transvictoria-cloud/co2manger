@@ -215,9 +215,14 @@ export type Database = {
       }
       transfers: {
         Row: {
+          client_name: string | null
           created_at: string | null
-          cylinder_id: string
+          cylinder_capacity_kg: number | null
+          cylinder_id: string | null
+          cylinder_quantity: number | null
           date_time: string | null
+          delivery_note_number: string | null
+          driver_name: string | null
           from_location: Database["public"]["Enums"]["cylinder_location"]
           id: string
           notes: string | null
@@ -225,9 +230,14 @@ export type Database = {
           to_location: Database["public"]["Enums"]["cylinder_location"]
         }
         Insert: {
+          client_name?: string | null
           created_at?: string | null
-          cylinder_id: string
+          cylinder_capacity_kg?: number | null
+          cylinder_id?: string | null
+          cylinder_quantity?: number | null
           date_time?: string | null
+          delivery_note_number?: string | null
+          driver_name?: string | null
           from_location: Database["public"]["Enums"]["cylinder_location"]
           id?: string
           notes?: string | null
@@ -235,9 +245,14 @@ export type Database = {
           to_location: Database["public"]["Enums"]["cylinder_location"]
         }
         Update: {
+          client_name?: string | null
           created_at?: string | null
-          cylinder_id?: string
+          cylinder_capacity_kg?: number | null
+          cylinder_id?: string | null
+          cylinder_quantity?: number | null
           date_time?: string | null
+          delivery_note_number?: string | null
+          driver_name?: string | null
           from_location?: Database["public"]["Enums"]["cylinder_location"]
           id?: string
           notes?: string | null
@@ -267,6 +282,8 @@ export type Database = {
         | "filling_station"
         | "maintenance"
         | "out_of_service"
+        | "assignments"
+        | "returns"
       cylinder_state:
         | "empty"
         | "full"
@@ -407,6 +424,8 @@ export const Constants = {
         "filling_station",
         "maintenance",
         "out_of_service",
+        "assignments",
+        "returns",
       ],
       cylinder_state: [
         "empty",
